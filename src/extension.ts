@@ -51,19 +51,13 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.onDidReceiveMessage((data) => {
 			switch (data.type) {
 				case "openFilesToMarkdown":
-					vscode.commands.executeCommand(
-						"nils-prompt-tools.openFilesToMarkdown"
-					);
+					openFilesToMarkdown(data.append);
 					break;
 				case "selectOpenFilesToMarkdown":
-					vscode.commands.executeCommand(
-						"nils-prompt-tools.selectOpenFilesToMarkdown"
-					);
+					selectOpenFilesToMarkdown(data.append);
 					break;
 				case "copyCurrentFileToMarkdown":
-					vscode.commands.executeCommand(
-						"nils-prompt-tools.copyCurrentFileToMarkdown"
-					);
+					copyCurrentFileToMarkdown(data.append);
 					break;
 			}
 		});
@@ -106,33 +100,48 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
                         opacity: 0.8;
                         margin-top: 4px;
                     }
+					.checkbox-container {
+						margin-bottom: 20px;
+					}
                 </style>
             </head>
             <body>
-                <button class="button" id="copyCurrentFileToMarkdown">
-                    <span>Copy Current File</span>
-                    <span class="description">Copy the currently active file as markdown</span>
-                </button>			
-                <button class="button" id="openFilesToMarkdown">
-                    <span>Copy All Editor Tabs</span>
-                    <span class="description">Copy all open files as markdown to clipboard</span>
-                </button>
-                <button class="button" id="selectOpenFilesToMarkdown">
-                    <span>Select Editor Tabs...</span>
-                    <span class="description">Select specific open files to copy as markdown</span>
-                </button>
+                <div class="checkbox-container">
+					<button class="button" id="copyCurrentFileToMarkdown">
+						<span>Copy Current File</span>
+						<span class="description">Copy the currently active file as markdown</span>
+					</button>
+					<label><input type="checkbox" id="appendCopyCurrentFileToMarkdown"> Append</label>
+				</div>
+				<div class="checkbox-container">
+					<button class="button" id="openFilesToMarkdown">
+						<span>Copy All Editor Tabs</span>
+						<span class="description">Copy all open files as markdown to clipboard</span>
+					</button>
+					<label><input type="checkbox" id="appendOpenFilesToMarkdown"> Append</label>
+				</div>
+				<div class="checkbox-container">
+					<button class="button" id="selectOpenFilesToMarkdown">
+						<span>Select Editor Tabs...</span>
+						<span class="description">Select specific open files to copy as markdown</span>
+					</button>
+					<label><input type="checkbox" id="appendSelectOpenFilesToMarkdown"> Append</label>
+				</div>
 
                 <script>
                     (function() {
                         const vscode = acquireVsCodeApi();
                         document.getElementById('openFilesToMarkdown').addEventListener('click', () => {
-                            vscode.postMessage({ type: 'openFilesToMarkdown' });
+							const append = document.getElementById('appendOpenFilesToMarkdown').checked;
+                            vscode.postMessage({ type: 'openFilesToMarkdown', append });
                         });
                         document.getElementById('selectOpenFilesToMarkdown').addEventListener('click', () => {
-                            vscode.postMessage({ type: 'selectOpenFilesToMarkdown' });
+							const append = document.getElementById('appendSelectOpenFilesToMarkdown').checked;
+                            vscode.postMessage({ type: 'selectOpenFilesToMarkdown', append });
                         });
                         document.getElementById('copyCurrentFileToMarkdown').addEventListener('click', () => {
-                            vscode.postMessage({ type: 'copyCurrentFileToMarkdown' });
+							const append = document.getElementById('appendCopyCurrentFileToMarkdown').checked;
+                            vscode.postMessage({ type: 'copyCurrentFileToMarkdown', append });
                         });
                     }())
                 </script>
@@ -141,7 +150,7 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 	}
 }
 
-async function openFilesToMarkdown() {
+async function openFilesToMarkdown(append: boolean) {
 	const tabGroups = vscode.window.tabGroups.all;
 	let markdownText = "";
 
@@ -159,6 +168,10 @@ async function openFilesToMarkdown() {
 	if (markdownText === "") {
 		vscode.window.showInformationMessage("No open files found.");
 	} else {
+		if (append) {
+			const currentClipboard = await vscode.env.clipboard.readText();
+			markdownText = currentClipboard + markdownText;
+		}
 		await vscode.env.clipboard.writeText(markdownText);
 		vscode.window.showInformationMessage(
 			"Open files content copied as markdown to clipboard!"
@@ -166,7 +179,7 @@ async function openFilesToMarkdown() {
 	}
 }
 
-async function selectOpenFilesToMarkdown() {
+async function selectOpenFilesToMarkdown(append: boolean) {
 	const tabGroups = vscode.window.tabGroups.all;
 	const tabItems: vscode.QuickPickItem[] = [];
 
@@ -201,20 +214,28 @@ async function selectOpenFilesToMarkdown() {
 		markdownText += `\`\`\`${fileName}\n${fileContent}\n\`\`\`\n\n`;
 	}
 
+	if (append) {
+		const currentClipboard = await vscode.env.clipboard.readText();
+		markdownText = currentClipboard + markdownText;
+	}
 	await vscode.env.clipboard.writeText(markdownText);
 	vscode.window.showInformationMessage(
 		"Selected open files content copied as markdown to clipboard!"
 	);
 }
 
-async function copyCurrentFileToMarkdown() {
+async function copyCurrentFileToMarkdown(append: boolean) {
 	const activeEditor = vscode.window.activeTextEditor;
 	if (activeEditor) {
 		const document = activeEditor.document;
 		const fileName = document.fileName.split("/").pop();
 		const fileContent = document.getText();
-		const markdownText = `\`\`\`${fileName}\n${fileContent}\n\`\`\`\n\n`;
+		let markdownText = `\`\`\`${fileName}\n${fileContent}\n\`\`\`\n\n`;
 
+		if (append) {
+			const currentClipboard = await vscode.env.clipboard.readText();
+			markdownText = currentClipboard + markdownText;
+		}
 		await vscode.env.clipboard.writeText(markdownText);
 		vscode.window.showInformationMessage(
 			"Current file content copied as markdown to clipboard!"
