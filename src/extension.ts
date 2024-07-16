@@ -109,18 +109,19 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
                 </style>
             </head>
             <body>
+                <button class="button" id="copyCurrentFileToMarkdown">
+                    <span>Copy Current File</span>
+                    <span class="description">Copy the currently active file as markdown</span>
+                </button>			
                 <button class="button" id="openFilesToMarkdown">
-                    <span>Open Files to Markdown</span>
+                    <span>Copy All Editor Tabs</span>
                     <span class="description">Copy all open files as markdown to clipboard</span>
                 </button>
                 <button class="button" id="selectOpenFilesToMarkdown">
-                    <span>Select Open Files to Markdown</span>
+                    <span>Select Editor Tabs...</span>
                     <span class="description">Select specific open files to copy as markdown</span>
                 </button>
-                <button class="button" id="copyCurrentFileToMarkdown">
-                    <span>Copy Current File to Markdown</span>
-                    <span class="description">Copy the currently active file as markdown</span>
-                </button>
+
                 <script>
                     (function() {
                         const vscode = acquireVsCodeApi();
