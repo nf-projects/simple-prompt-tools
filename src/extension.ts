@@ -27,6 +27,10 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			"nils-prompt-tools.copyCurrentFileToMarkdown",
 			copyCurrentFileToMarkdown
+		),
+		vscode.commands.registerCommand(
+			"nils-prompt-tools.copyErrorsInCurrentFile",
+			copyErrorsInCurrentFile
 		)
 	);
 }
@@ -58,6 +62,9 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 					break;
 				case "copyCurrentFileToMarkdown":
 					copyCurrentFileToMarkdown(data.append);
+					break;
+				case "copyErrorsInCurrentFile":
+					copyErrorsInCurrentFile(data.append);
 					break;
 			}
 		});
@@ -127,6 +134,13 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 					</button>
 					<label><input type="checkbox" id="appendSelectOpenFilesToMarkdown"> Append</label>
 				</div>
+				<div class="checkbox-container">
+					<button class="button" id="copyErrorsInCurrentFile">
+						<span>Copy Errors in Current File</span>
+						<span class="description">Copy all errors in the currently active file as markdown</span>
+					</button>
+					<label><input type="checkbox" id="appendCopyErrorsInCurrentFile"> Append</label>
+				</div>
 
                 <script>
                     (function() {
@@ -142,6 +156,10 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
                         document.getElementById('copyCurrentFileToMarkdown').addEventListener('click', () => {
 							const append = document.getElementById('appendCopyCurrentFileToMarkdown').checked;
                             vscode.postMessage({ type: 'copyCurrentFileToMarkdown', append });
+                        });
+                        document.getElementById('copyErrorsInCurrentFile').addEventListener('click', () => {
+							const append = document.getElementById('appendCopyErrorsInCurrentFile').checked;
+                            vscode.postMessage({ type: 'copyErrorsInCurrentFile', append });
                         });
                     }())
                 </script>
@@ -174,7 +192,7 @@ async function openFilesToMarkdown(append: boolean) {
 		}
 		await vscode.env.clipboard.writeText(markdownText);
 		vscode.window.showInformationMessage(
-			"Open files content copied as markdown to clipboard!"
+			`Open files copied! ${append ? "(APPEND)" : ""}`
 		);
 	}
 }
@@ -220,7 +238,7 @@ async function selectOpenFilesToMarkdown(append: boolean) {
 	}
 	await vscode.env.clipboard.writeText(markdownText);
 	vscode.window.showInformationMessage(
-		"Selected open files content copied as markdown to clipboard!"
+		`Selected files content copied! ${append ? "(APPEND)" : ""}`
 	);
 }
 
@@ -238,7 +256,48 @@ async function copyCurrentFileToMarkdown(append: boolean) {
 		}
 		await vscode.env.clipboard.writeText(markdownText);
 		vscode.window.showInformationMessage(
-			"Current file content copied as markdown to clipboard!"
+			`Current file copied! ${append ? "(APPEND)" : ""}`
+		);
+	} else {
+		vscode.window.showInformationMessage("No active editor found.");
+	}
+}
+
+async function copyErrorsInCurrentFile(append: boolean) {
+	const activeEditor = vscode.window.activeTextEditor;
+	if (activeEditor) {
+		const document = activeEditor.document;
+		const diagnostics = vscode.languages.getDiagnostics(document.uri);
+		const errors = diagnostics.filter(
+			(diag) => diag.severity === vscode.DiagnosticSeverity.Error
+		);
+		if (errors.length === 0) {
+			vscode.window.showInformationMessage(
+				"No errors found in the current file."
+			);
+			return;
+		}
+
+		const name = document.fileName.split("/").pop();
+
+		let markdownText = `The following errors were found in the file ${name}:
+		
+		`;
+
+		for (const error of errors) {
+			const line = document.lineAt(error.range.start.line);
+			markdownText += `- Error in line ${error.range.start.line + 1} (${
+				line.text
+			}): ${error.message}\n`;
+		}
+
+		if (append) {
+			const currentClipboard = await vscode.env.clipboard.readText();
+			markdownText = currentClipboard + markdownText;
+		}
+		await vscode.env.clipboard.writeText(markdownText);
+		vscode.window.showInformationMessage(
+			`${errors.length} errors copied! ${append ? "(APPEND)" : ""}`
 		);
 	} else {
 		vscode.window.showInformationMessage("No active editor found.");
