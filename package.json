@@ -9,19 +9,10 @@
 	"categories": [
 		"Other"
 	],
-	"activationEvents": [
-		"onCommand:nils-prompt-tools.helloWorld",
-		"onCommand:nils-prompt-tools.openFilesToMarkdown",
-		"onCommand:nils-prompt-tools.selectOpenFilesToMarkdown",
-		"onCommand:nils-prompt-tools.copyCurrentFileToMarkdown"
-	],
+	"activationEvents": [],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
-			{
-				"command": "nils-prompt-tools.helloWorld",
-				"title": "Hello World"
-			},
 			{
 				"command": "nils-prompt-tools.openFilesToMarkdown",
 				"title": "Open Files to Markdown"
@@ -47,48 +38,23 @@
 		"views": {
 			"nilsPromptTools": [
 				{
+					"type": "webview",
 					"id": "promptToolsView",
 					"name": "Prompt Tools"
 				}
 			]
-		},
-		"viewsWelcome": [
-			{
-				"view": "promptToolsView",
-				"contents": "No prompt tools available."
-			}
-		],
-		"colors": [
-			{
-				"id": "promptTools.buttonBackground",
-				"description": "Background color of Prompt Tools buttons",
-				"defaults": {
-					"dark": "#0e639c",
-					"light": "#007acc",
-					"highContrast": "#0e639c"
-				}
-			},
-			{
-				"id": "promptTools.buttonForeground",
-				"description": "Foreground color of Prompt Tools buttons",
-				"defaults": {
-					"dark": "#ffffff",
-					"light": "#ffffff",
-					"highContrast": "#ffffff"
-				}
-			}
-		]
+		}
 	},
 	"scripts": {
-		"vscode:prepublish": "yarn run package",
+		"vscode:prepublish": "npm run package",
 		"compile": "webpack",
 		"watch": "webpack --watch",
 		"package": "webpack --mode production --devtool hidden-source-map",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
-		"pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+		"pretest": "npm run compile-tests && npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
-		"test": "vscode-test"
+		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
 		"@types/vscode": "^1.91.0",
