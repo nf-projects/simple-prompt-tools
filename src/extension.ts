@@ -5,15 +5,6 @@ export function activate(context: vscode.ExtensionContext) {
 		'Congratulations, your extension "nils-prompt-tools" is now active!'
 	);
 
-	const helloWorldCommand = vscode.commands.registerCommand(
-		"nils-prompt-tools.helloWorld",
-		() => {
-			vscode.window.showInformationMessage(
-				"Hello World from nils-prompt-tools!"
-			);
-		}
-	);
-
 	const openFilesToMarkdownCommand = vscode.commands.registerCommand(
 		"nils-prompt-tools.openFilesToMarkdown",
 		async () => {
@@ -91,9 +82,105 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	);
 
-	context.subscriptions.push(helloWorldCommand);
+	const copyCurrentFileToMarkdownCommand = vscode.commands.registerCommand(
+		"nils-prompt-tools.copyCurrentFileToMarkdown",
+		async () => {
+			const activeEditor = vscode.window.activeTextEditor;
+			if (activeEditor) {
+				const document = activeEditor.document;
+				const fileName = document.fileName.split("/").pop();
+				const fileContent = document.getText();
+				const markdownText = `\`\`\`${fileName}\n${fileContent}\n\`\`\`\n\n`;
+
+				await vscode.env.clipboard.writeText(markdownText);
+				vscode.window.showInformationMessage(
+					"Current file content copied as markdown to clipboard!"
+				);
+			} else {
+				vscode.window.showInformationMessage("No active editor found.");
+			}
+		}
+	);
+
 	context.subscriptions.push(openFilesToMarkdownCommand);
 	context.subscriptions.push(selectOpenFilesToMarkdownCommand);
+	context.subscriptions.push(copyCurrentFileToMarkdownCommand);
+
+	const treeDataProvider = new PromptToolsProvider();
+	vscode.window.registerTreeDataProvider("promptToolsView", treeDataProvider);
 }
 
 export function deactivate() {}
+
+class PromptToolsProvider implements vscode.TreeDataProvider<PromptToolItem> {
+	private _onDidChangeTreeData: vscode.EventEmitter<
+		PromptToolItem | undefined | null | void
+	> = new vscode.EventEmitter<PromptToolItem | undefined | null | void>();
+	readonly onDidChangeTreeData: vscode.Event<
+		PromptToolItem | undefined | null | void
+	> = this._onDidChangeTreeData.event;
+
+	getTreeItem(element: PromptToolItem): vscode.TreeItem {
+		return element;
+	}
+
+	getChildren(element?: PromptToolItem): Thenable<PromptToolItem[]> {
+		if (element) {
+			return Promise.resolve([]);
+		} else {
+			return Promise.resolve(this.getPromptTools());
+		}
+	}
+
+	private getPromptTools(): PromptToolItem[] {
+		return [
+			new PromptToolButtonItem(
+				"Open Files to Markdown",
+				"nils-prompt-tools.openFilesToMarkdown",
+				"Copy all open files as markdown to clipboard"
+			),
+			new PromptToolButtonItem(
+				"Select Open Files to Markdown",
+				"nils-prompt-tools.selectOpenFilesToMarkdown",
+				"Select specific open files to copy as markdown"
+			),
+			new PromptToolButtonItem(
+				"Copy Current File to Markdown",
+				"nils-prompt-tools.copyCurrentFileToMarkdown",
+				"Copy the currently active file as markdown"
+			),
+		];
+	}
+}
+
+class PromptToolItem extends vscode.TreeItem {
+	constructor(
+		public readonly label: string,
+		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+		public readonly description?: string
+	) {
+		super(label, collapsibleState);
+		this.description = description;
+	}
+}
+
+class PromptToolButtonItem extends PromptToolItem {
+	constructor(
+		public readonly label: string,
+		private commandId: string,
+		public readonly description: string
+	) {
+		super(label, vscode.TreeItemCollapsibleState.None, description);
+		this.command = {
+			command: commandId,
+			title: this.label,
+			arguments: [],
+		};
+		this.tooltip = this.description;
+		this.iconPath = new vscode.ThemeIcon(
+			"play-circle",
+			new vscode.ThemeColor("button.background")
+		);
+		this.contextValue = "promptToolButton";
+	}
+}

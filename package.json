@@ -9,7 +9,12 @@
 	"categories": [
 		"Other"
 	],
-	"activationEvents": [],
+	"activationEvents": [
+		"onCommand:nils-prompt-tools.helloWorld",
+		"onCommand:nils-prompt-tools.openFilesToMarkdown",
+		"onCommand:nils-prompt-tools.selectOpenFilesToMarkdown",
+		"onCommand:nils-prompt-tools.copyCurrentFileToMarkdown"
+	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
@@ -19,11 +24,58 @@
 			},
 			{
 				"command": "nils-prompt-tools.openFilesToMarkdown",
-				"title": "Prompt Tools: Open Files to Markdown"
+				"title": "Open Files to Markdown"
 			},
 			{
 				"command": "nils-prompt-tools.selectOpenFilesToMarkdown",
-				"title": "Prompt Tools: Select Open Files to Markdown"
+				"title": "Select Open Files to Markdown"
+			},
+			{
+				"command": "nils-prompt-tools.copyCurrentFileToMarkdown",
+				"title": "Copy Current File to Markdown"
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "nilsPromptTools",
+					"title": "Prompt Tools",
+					"icon": "$(symbol-keyword)"
+				}
+			]
+		},
+		"views": {
+			"nilsPromptTools": [
+				{
+					"id": "promptToolsView",
+					"name": "Prompt Tools"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "promptToolsView",
+				"contents": "No prompt tools available."
+			}
+		],
+		"colors": [
+			{
+				"id": "promptTools.buttonBackground",
+				"description": "Background color of Prompt Tools buttons",
+				"defaults": {
+					"dark": "#0e639c",
+					"light": "#007acc",
+					"highContrast": "#0e639c"
+				}
+			},
+			{
+				"id": "promptTools.buttonForeground",
+				"description": "Foreground color of Prompt Tools buttons",
+				"defaults": {
+					"dark": "#ffffff",
+					"light": "#ffffff",
+					"highContrast": "#ffffff"
+				}
 			}
 		]
 	},
