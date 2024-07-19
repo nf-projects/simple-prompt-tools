@@ -1,10 +1,8 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log(
-		'Congratulations, your extension "nils-prompt-tools" is now active!'
-	);
-
 	const provider = new PromptToolsViewProvider(context.extensionUri);
 
 	context.subscriptions.push(
@@ -14,8 +12,12 @@ export function activate(context: vscode.ExtensionContext) {
 		)
 	);
 
-	// Register the commands
+	// Register the commands for the commands palette
 	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			"nils-prompt-tools.copySelectedProjectPrompt",
+			copySelectedProjectPrompt
+		),
 		vscode.commands.registerCommand(
 			"nils-prompt-tools.openFilesToMarkdown",
 			openFilesToMarkdown
@@ -54,6 +56,9 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.onDidReceiveMessage((data) => {
 			switch (data.type) {
+				case "copySelectedProjectPrompt":
+					copySelectedProjectPrompt(data.append);
+					break;
 				case "openFilesToMarkdown":
 					openFilesToMarkdown(data.append);
 					break;
@@ -114,37 +119,48 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
             </head>
             <body>
                 <div class="checkbox-container">
+					<button class="button" id="copySelectedProjectPrompt">
+						<span>Copy Project Prompt</span>
+						<span class="description">Select and copy a prompt from prompts.json</span>
+					</button>
+					<label><input type="checkbox" id="appendCopySelectedProjectPrompt"> Append</label>
+				</div>
+                <div class="checkbox-container">
 					<button class="button" id="copyCurrentFileToMarkdown">
 						<span>Copy Current File</span>
 						<span class="description">Copy the currently active file as markdown</span>
 					</button>
-					<label><input type="checkbox" id="appendCopyCurrentFileToMarkdown"> Append</label>
+					<label><input type="checkbox" id="appendCopyCurrentFileToMarkdown" checked> Append</label>
 				</div>
 				<div class="checkbox-container">
 					<button class="button" id="openFilesToMarkdown">
 						<span>Copy All Editor Tabs</span>
 						<span class="description">Copy all open files as markdown to clipboard</span>
 					</button>
-					<label><input type="checkbox" id="appendOpenFilesToMarkdown"> Append</label>
+					<label><input type="checkbox" id="appendOpenFilesToMarkdown" checked> Append</label>
 				</div>
 				<div class="checkbox-container">
 					<button class="button" id="selectOpenFilesToMarkdown">
 						<span>Select Editor Tabs...</span>
 						<span class="description">Select specific open files to copy as markdown</span>
 					</button>
-					<label><input type="checkbox" id="appendSelectOpenFilesToMarkdown"> Append</label>
+					<label><input type="checkbox" id="appendSelectOpenFilesToMarkdown" checked> Append</label>
 				</div>
 				<div class="checkbox-container">
 					<button class="button" id="copyErrorsInCurrentFile">
 						<span>Copy Errors in Current File</span>
 						<span class="description">Copy all errors in the currently active file as markdown</span>
 					</button>
-					<label><input type="checkbox" id="appendCopyErrorsInCurrentFile"> Append</label>
+					<label><input type="checkbox" id="appendCopyErrorsInCurrentFile" checked> Append</label>
 				</div>
 
                 <script>
                     (function() {
                         const vscode = acquireVsCodeApi();
+                        document.getElementById('copySelectedProjectPrompt').addEventListener('click', () => {
+							const append = document.getElementById('appendCopySelectedProjectPrompt').checked;
+                            vscode.postMessage({ type: 'copySelectedProjectPrompt', append });
+                        });
                         document.getElementById('openFilesToMarkdown').addEventListener('click', () => {
 							const append = document.getElementById('appendOpenFilesToMarkdown').checked;
                             vscode.postMessage({ type: 'openFilesToMarkdown', append });
@@ -168,6 +184,70 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 	}
 }
 
+async function copySelectedProjectPrompt(append: boolean) {
+	const workspaceFolders = vscode.workspace.workspaceFolders;
+	if (!workspaceFolders) {
+		vscode.window.showErrorMessage("No workspace folder found.");
+		return;
+	}
+
+	const rootPath = workspaceFolders[0].uri.fsPath;
+	const promptsFilePath = path.join(rootPath, "prompts.json");
+
+	if (!fs.existsSync(promptsFilePath)) {
+		vscode.window.showErrorMessage(
+			"prompts.json file not found in the project root."
+		);
+		return;
+	}
+
+	try {
+		const promptsContent = fs.readFileSync(promptsFilePath, "utf-8");
+		const promptsData = JSON.parse(promptsContent);
+
+		if (!promptsData.prompts || !Array.isArray(promptsData.prompts)) {
+			vscode.window.showErrorMessage("Invalid prompts.json structure.");
+			return;
+		}
+
+		const promptItems = promptsData.prompts.map((prompt: any) => ({
+			label: prompt.name,
+			description: prompt.message.substring(0, 50) + "...",
+			prompt: prompt.message,
+		}));
+
+		type SelectedPrompt =
+			| {
+					label: string;
+					description: string;
+					prompt: string;
+			  }
+			| undefined;
+
+		const selectedPrompt = (await vscode.window.showQuickPick(promptItems, {
+			placeHolder: "Select a prompt to copy",
+		})) as SelectedPrompt;
+
+		if (selectedPrompt) {
+			let clipboardContent = selectedPrompt.prompt;
+
+			if (append) {
+				const currentClipboard = await vscode.env.clipboard.readText();
+				clipboardContent = currentClipboard + "\n\n" + clipboardContent;
+			}
+
+			await vscode.env.clipboard.writeText(clipboardContent);
+			vscode.window.showInformationMessage(
+				`Prompt "${selectedPrompt.label}" copied! ${append ? "(APPEND)" : ""}`
+			);
+		}
+	} catch (error) {
+		vscode.window.showErrorMessage(
+			`Error reading or parsing prompts.json: ${error}`
+		);
+	}
+}
+
 async function openFilesToMarkdown(append: boolean) {
 	const tabGroups = vscode.window.tabGroups.all;
 	let markdownText = "";
@@ -188,7 +268,7 @@ async function openFilesToMarkdown(append: boolean) {
 	} else {
 		if (append) {
 			const currentClipboard = await vscode.env.clipboard.readText();
-			markdownText = currentClipboard + markdownText;
+			markdownText = currentClipboard + "\n\n" + markdownText;
 		}
 		await vscode.env.clipboard.writeText(markdownText);
 		vscode.window.showInformationMessage(
@@ -234,7 +314,7 @@ async function selectOpenFilesToMarkdown(append: boolean) {
 
 	if (append) {
 		const currentClipboard = await vscode.env.clipboard.readText();
-		markdownText = currentClipboard + markdownText;
+		markdownText = currentClipboard + "\n\n" + markdownText;
 	}
 	await vscode.env.clipboard.writeText(markdownText);
 	vscode.window.showInformationMessage(
@@ -252,7 +332,7 @@ async function copyCurrentFileToMarkdown(append: boolean) {
 
 		if (append) {
 			const currentClipboard = await vscode.env.clipboard.readText();
-			markdownText = currentClipboard + markdownText;
+			markdownText = currentClipboard + "\n\n" + markdownText;
 		}
 		await vscode.env.clipboard.writeText(markdownText);
 		vscode.window.showInformationMessage(
@@ -293,7 +373,7 @@ async function copyErrorsInCurrentFile(append: boolean) {
 
 		if (append) {
 			const currentClipboard = await vscode.env.clipboard.readText();
-			markdownText = currentClipboard + markdownText;
+			markdownText = currentClipboard + "\n\n" + markdownText;
 		}
 		await vscode.env.clipboard.writeText(markdownText);
 		vscode.window.showInformationMessage(
