@@ -130,28 +130,28 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 						<span>Copy Current File</span>
 						<span class="description">Copy the currently active file as markdown</span>
 					</button>
-					<label><input type="checkbox" id="appendCopyCurrentFileToMarkdown" checked> Append</label>
+					<label><input type="checkbox" id="appendCopyCurrentFileToMarkdown"> Append</label>
 				</div>
 				<div class="checkbox-container">
 					<button class="button" id="openFilesToMarkdown">
 						<span>Copy All Editor Tabs</span>
 						<span class="description">Copy all open files as markdown to clipboard</span>
 					</button>
-					<label><input type="checkbox" id="appendOpenFilesToMarkdown" checked> Append</label>
+					<label><input type="checkbox" id="appendOpenFilesToMarkdown"> Append</label>
 				</div>
 				<div class="checkbox-container">
 					<button class="button" id="selectOpenFilesToMarkdown">
 						<span>Select Editor Tabs...</span>
 						<span class="description">Select specific open files to copy as markdown</span>
 					</button>
-					<label><input type="checkbox" id="appendSelectOpenFilesToMarkdown" checked> Append</label>
+					<label><input type="checkbox" id="appendSelectOpenFilesToMarkdown"> Append</label>
 				</div>
 				<div class="checkbox-container">
 					<button class="button" id="copyErrorsInCurrentFile">
 						<span>Copy Errors in Current File</span>
 						<span class="description">Copy all errors in the currently active file as markdown</span>
 					</button>
-					<label><input type="checkbox" id="appendCopyErrorsInCurrentFile" checked> Append</label>
+					<label><input type="checkbox" id="appendCopyErrorsInCurrentFile"> Append</label>
 				</div>
 
                 <script>
