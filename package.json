@@ -46,6 +46,7 @@
 		}
 	},
 	"scripts": {
+		"package-vsce": "vsce package",
 		"vscode:prepublish": "npm run package",
 		"compile": "webpack",
 		"watch": "webpack --watch",
