@@ -54,3 +54,10 @@ For each action, a checkbox labeled "Append" is included. This enables powerful 
 - Append the file structure
 - Append relevant files
 - Append errors
+
+# Installation
+
+- Clone project
+- yarn install
+- Run `vsce package`
+- VSCode Extensions > Install from VSIX > Select the generated .vsix file
