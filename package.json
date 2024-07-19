@@ -1,8 +1,8 @@
 {
-	"name": "nils-prompt-tools",
-	"displayName": "nils-prompt-tools",
+	"name": "simple-prompt-tools",
+	"displayName": "simple-prompt-tools",
 	"description": "A collection of VSCode tools to make AI development more efficient through prompt templates",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"engines": {
 		"vscode": "^1.91.0"
 	},
@@ -14,29 +14,29 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "nils-prompt-tools.openFilesToMarkdown",
+				"command": "simple-prompt-tools.openFilesToMarkdown",
 				"title": "Open Files to Markdown"
 			},
 			{
-				"command": "nils-prompt-tools.selectOpenFilesToMarkdown",
+				"command": "simple-prompt-tools.selectOpenFilesToMarkdown",
 				"title": "Select Open Files to Markdown"
 			},
 			{
-				"command": "nils-prompt-tools.copyCurrentFileToMarkdown",
+				"command": "simple-prompt-tools.copyCurrentFileToMarkdown",
 				"title": "Copy Current File to Markdown"
 			}
 		],
 		"viewsContainers": {
 			"activitybar": [
 				{
-					"id": "nilsPromptTools",
+					"id": "simplePromptTools",
 					"title": "Prompt Tools",
 					"icon": "$(symbol-keyword)"
 				}
 			]
 		},
 		"views": {
-			"nilsPromptTools": [
+			"simplePromptTools": [
 				{
 					"type": "webview",
 					"id": "promptToolsView",

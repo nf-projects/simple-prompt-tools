@@ -15,23 +15,23 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register the commands for the commands palette
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
-			"nils-prompt-tools.copySelectedProjectPrompt",
+			"simple-prompt-tools.copySelectedProjectPrompt",
 			copySelectedProjectPrompt
 		),
 		vscode.commands.registerCommand(
-			"nils-prompt-tools.openFilesToMarkdown",
+			"simple-prompt-tools.openFilesToMarkdown",
 			openFilesToMarkdown
 		),
 		vscode.commands.registerCommand(
-			"nils-prompt-tools.selectOpenFilesToMarkdown",
+			"simple-prompt-tools.selectOpenFilesToMarkdown",
 			selectOpenFilesToMarkdown
 		),
 		vscode.commands.registerCommand(
-			"nils-prompt-tools.copyCurrentFileToMarkdown",
+			"simple-prompt-tools.copyCurrentFileToMarkdown",
 			copyCurrentFileToMarkdown
 		),
 		vscode.commands.registerCommand(
-			"nils-prompt-tools.copyErrorsInCurrentFile",
+			"simple-prompt-tools.copyErrorsInCurrentFile",
 			copyErrorsInCurrentFile
 		)
 	);
