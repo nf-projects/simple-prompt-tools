@@ -59,6 +59,10 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 				case "copySelectedProjectPrompt":
 					copySelectedProjectPrompt(data.append);
 					break;
+				case "copyFolderStructure":
+					copyFolderStructure(data.append);
+					break;
+
 				case "openFilesToMarkdown":
 					openFilesToMarkdown(data.append);
 					break;
@@ -125,6 +129,13 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 					</button>
 					<label><input type="checkbox" id="appendCopySelectedProjectPrompt"> Append</label>
 				</div>
+				<div class="checkbox-container">
+					<button class="button" id="copyFolderStructure">
+    					<span>Copy Folder Structure</span>
+    					<span class="description">Copy the structure of a selected folder</span>
+					</button>
+					<label><input type="checkbox" id="appendCopyFolderStructure"> Append</label>
+				</div>
                 <div class="checkbox-container">
 					<button class="button" id="copyCurrentFileToMarkdown">
 						<span>Copy Current File</span>
@@ -161,6 +172,10 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
 							const append = document.getElementById('appendCopySelectedProjectPrompt').checked;
                             vscode.postMessage({ type: 'copySelectedProjectPrompt', append });
                         });
+						document.getElementById('copyFolderStructure').addEventListener('click', () => {
+							const append = document.getElementById('appendCopyFolderStructure').checked;
+							vscode.postMessage({ type: 'copyFolderStructure', append });
+						});						
                         document.getElementById('openFilesToMarkdown').addEventListener('click', () => {
 							const append = document.getElementById('appendOpenFilesToMarkdown').checked;
                             vscode.postMessage({ type: 'openFilesToMarkdown', append });
@@ -246,6 +261,80 @@ async function copySelectedProjectPrompt(append: boolean) {
 			`Error reading or parsing prompts.json: ${error}`
 		);
 	}
+}
+
+async function copyFolderStructure(append: boolean) {
+	const options: vscode.OpenDialogOptions = {
+		canSelectFolders: true,
+		canSelectMany: false,
+		openLabel: "Select Folder",
+	};
+
+	const folderUri = await vscode.window.showOpenDialog(options);
+	if (!folderUri || folderUri.length === 0) {
+		return;
+	}
+
+	const folderPath = folderUri[0].fsPath;
+	const folderStructure = await generateFolderStructure(folderPath);
+
+	if (append) {
+		const currentClipboard = await vscode.env.clipboard.readText();
+		await vscode.env.clipboard.writeText(
+			currentClipboard + "\n\n" + folderStructure
+		);
+	} else {
+		await vscode.env.clipboard.writeText(folderStructure);
+	}
+
+	vscode.window.showInformationMessage("Folder structure copied to clipboard!");
+}
+
+// wonderful recursive function to generate the textual representation of a folder structure
+async function generateFolderStructure(
+	folderPath: string,
+	prefix: string = "",
+	isLast: boolean = true,
+	useAscii: boolean = false
+): Promise<string> {
+	let structure = "";
+	const entries = await fs.promises.readdir(folderPath, {
+		withFileTypes: true,
+	});
+
+	// Symbols for tree branches
+	const symbols = useAscii
+		? {
+				corner: "`-- ",
+				cross: "|-- ",
+				vertical: "|   ",
+				space: "    ",
+		  }
+		: {
+				corner: "└── ",
+				cross: "├── ",
+				vertical: "│   ",
+				space: "    ",
+		  };
+
+	entries.forEach((entry, index) => {
+		const isLastEntry = index === entries.length - 1;
+		structure += `${prefix}${isLastEntry ? symbols.corner : symbols.cross}${
+			entry.name
+		}\n`;
+
+		if (entry.isDirectory()) {
+			const newPrefix = prefix + (isLast ? symbols.space : symbols.vertical);
+			structure += generateFolderStructure(
+				path.join(folderPath, entry.name),
+				newPrefix,
+				isLastEntry,
+				useAscii
+			);
+		}
+	});
+
+	return structure;
 }
 
 async function openFilesToMarkdown(append: boolean) {
