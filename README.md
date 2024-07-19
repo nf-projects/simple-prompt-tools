@@ -20,7 +20,6 @@ and a file that handles the backend. To use an LLM for development, you need to
 ## Simple Prompt Tools
 
 This extension creates a simple sidebar with buttons to automate & speed up every step of that process to save you time
-![Screenshot](screenshot.png)
 
 ### Project Prompts
 

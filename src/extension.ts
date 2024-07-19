@@ -276,7 +276,9 @@ async function copyFolderStructure(append: boolean) {
 	}
 
 	const folderPath = folderUri[0].fsPath;
-	const folderStructure = await generateFolderStructure(folderPath);
+	const folderName = path.basename(folderPath);
+	let folderStructure = `Folder structure of ${folderName}:\n\n`;
+	folderStructure += await generateFolderStructure(folderPath);
 
 	if (append) {
 		const currentClipboard = await vscode.env.clipboard.readText();
@@ -290,17 +292,14 @@ async function copyFolderStructure(append: boolean) {
 	vscode.window.showInformationMessage("Folder structure copied to clipboard!");
 }
 
-// wonderful recursive function to generate the textual representation of a folder structure
-async function generateFolderStructure(
+function generateFolderStructure(
 	folderPath: string,
 	prefix: string = "",
 	isLast: boolean = true,
 	useAscii: boolean = false
-): Promise<string> {
+): string {
 	let structure = "";
-	const entries = await fs.promises.readdir(folderPath, {
-		withFileTypes: true,
-	});
+	const entries = fs.readdirSync(folderPath, { withFileTypes: true });
 
 	// Symbols for tree branches
 	const symbols = useAscii
