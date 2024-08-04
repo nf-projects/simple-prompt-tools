@@ -23,17 +23,20 @@ This extension creates a simple sidebar with buttons to automate & speed up ever
 
 ### Project Prompts
 
-The most important action is `Copy Project Prompt`. It reads from a `prompts.json` file in the root folder of the current project, which might look like this:
+The most important action is `Copy Project Prompt`. It reads from a `prompts.md` file in the root folder of the current project, which might look like this:
 
-```json
-{
-	"prompts": [
-		{
-			"name": "General System Prompt",
-			"message": "The current project is a VSCode extension that makes AI development prompting easier within the IDE. It is written in typescript and bundled with webpack. The main code is src/extension.ts"
-		}
-	]
-}
+```markdown
+# General System Prompt
+
+The current project is a VSCode extension that makes AI development prompting easier within the IDE. It is written in typescript and bundled with webpack. The main code is src/extension.ts
+
+# Feature-specific Prompt
+
+This prompt provides context about a specific feature we're working on...
+
+# Another Prompt
+
+Content for another prompt...
 ```
 
 This lets you define multiple prompt templates for your project to easily copy them. For example:

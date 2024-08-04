@@ -1,8 +1,0 @@
-{
-	"prompts": [
-		{
-			"name": "General System Prompt",
-			"message": "The current project is a VSCode extension that makes AI development prompting easier within the IDE. It is written in typescript and bundled with webpack. The main code is src/extension.ts"
-		}
-	]
-}

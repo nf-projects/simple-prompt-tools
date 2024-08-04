@@ -125,7 +125,7 @@ class PromptToolsViewProvider implements vscode.WebviewViewProvider {
                 <div class="checkbox-container">
 					<button class="button" id="copySelectedProjectPrompt">
 						<span>Copy Project Prompt</span>
-						<span class="description">Select and copy a prompt from prompts.json</span>
+						<span class="description">Select and copy a prompt from prompts.md</span>
 					</button>
 					<label><input type="checkbox" id="appendCopySelectedProjectPrompt"> Append</label>
 				</div>
@@ -207,29 +207,28 @@ async function copySelectedProjectPrompt(append: boolean) {
 	}
 
 	const rootPath = workspaceFolders[0].uri.fsPath;
-	const promptsFilePath = path.join(rootPath, "prompts.json");
+	const promptsFilePath = path.join(rootPath, "prompts.md");
 
 	if (!fs.existsSync(promptsFilePath)) {
 		vscode.window.showErrorMessage(
-			"prompts.json file not found in the project root."
+			"prompts.md file not found in the project root."
 		);
 		return;
 	}
 
 	try {
 		const promptsContent = fs.readFileSync(promptsFilePath, "utf-8");
-		const promptsData = JSON.parse(promptsContent);
+		const promptSections = promptsContent.split(/^# /m).slice(1);
 
-		if (!promptsData.prompts || !Array.isArray(promptsData.prompts)) {
-			vscode.window.showErrorMessage("Invalid prompts.json structure.");
-			return;
-		}
-
-		const promptItems = promptsData.prompts.map((prompt: any) => ({
-			label: prompt.name,
-			description: prompt.message.substring(0, 50) + "...",
-			prompt: prompt.message,
-		}));
+		const promptItems = promptSections.map((section) => {
+			const [name, ...contentLines] = section.split("\n");
+			const content = contentLines.join("\n").trim();
+			return {
+				label: name.trim(),
+				description: content.substring(0, 50) + "...",
+				prompt: content,
+			};
+		});
 
 		type SelectedPrompt =
 			| {
@@ -258,7 +257,7 @@ async function copySelectedProjectPrompt(append: boolean) {
 		}
 	} catch (error) {
 		vscode.window.showErrorMessage(
-			`Error reading or parsing prompts.json: ${error}`
+			`Error reading or parsing prompts.md: ${error}`
 		);
 	}
 }
