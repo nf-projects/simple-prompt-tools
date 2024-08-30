@@ -376,6 +376,15 @@ async function copyFolderStructure(append: boolean) {
 	vscode.window.showInformationMessage("Folder structure copied to clipboard!");
 }
 
+async function getRelativePath(filePath: string): Promise<string> {
+	const workspaceFolders = vscode.workspace.workspaceFolders;
+	if (!workspaceFolders) {
+		return filePath;
+	}
+	const rootPath = workspaceFolders[0].uri.fsPath;
+	return path.relative(rootPath, filePath);
+}
+
 async function openFilesToMarkdown(append: boolean) {
 	const tabGroups = vscode.window.tabGroups.all;
 	let markdownText = "";
@@ -384,9 +393,9 @@ async function openFilesToMarkdown(append: boolean) {
 		for (const tab of group.tabs) {
 			if (tab.input instanceof vscode.TabInputText) {
 				const document = await vscode.workspace.openTextDocument(tab.input.uri);
-				const fileName = document.fileName.split("/").pop();
+				const relativePath = await getRelativePath(document.fileName);
 				const fileContent = document.getText();
-				markdownText += `\`\`\`${fileName}\n${fileContent}\n\`\`\`\n\n`;
+				markdownText += `\`\`\`${relativePath}\n${fileContent}\n\`\`\`\n\n`;
 			}
 		}
 	}
@@ -413,8 +422,8 @@ async function selectOpenFilesToMarkdown(append: boolean) {
 		for (const tab of group.tabs) {
 			if (tab.input instanceof vscode.TabInputText) {
 				const uri = tab.input.uri;
-				const label = uri.path.split("/").pop() || uri.path;
-				tabItems.push({ label, description: uri.fsPath });
+				const relativePath = await getRelativePath(uri.fsPath);
+				tabItems.push({ label: relativePath, description: uri.fsPath });
 			}
 		}
 	}
@@ -435,9 +444,9 @@ async function selectOpenFilesToMarkdown(append: boolean) {
 		const document = await vscode.workspace.openTextDocument(
 			vscode.Uri.file(item.description!)
 		);
-		const fileName = document.fileName.split("/").pop();
+		const relativePath = await getRelativePath(document.fileName);
 		const fileContent = document.getText();
-		markdownText += `\`\`\`${fileName}\n${fileContent}\n\`\`\`\n\n`;
+		markdownText += `\`\`\`${relativePath}\n${fileContent}\n\`\`\`\n\n`;
 	}
 
 	if (append) {
@@ -454,9 +463,9 @@ async function copyCurrentFileToMarkdown(append: boolean) {
 	const activeEditor = vscode.window.activeTextEditor;
 	if (activeEditor) {
 		const document = activeEditor.document;
-		const fileName = document.fileName.split("/").pop();
+		const relativePath = await getRelativePath(document.fileName);
 		const fileContent = document.getText();
-		let markdownText = `\`\`\`${fileName}\n${fileContent}\n\`\`\`\n\n`;
+		let markdownText = `\`\`\`${relativePath}\n${fileContent}\n\`\`\`\n\n`;
 
 		if (append) {
 			const currentClipboard = await vscode.env.clipboard.readText();
@@ -486,11 +495,9 @@ async function copyErrorsInCurrentFile(append: boolean) {
 			return;
 		}
 
-		const name = document.fileName.split("/").pop();
+		const relativePath = await getRelativePath(document.fileName);
 
-		let markdownText = `The following errors were found in the file ${name}:
-		
-		`;
+		let markdownText = `The following errors were found in the file ${relativePath}:`;
 
 		for (const error of errors) {
 			const line = document.lineAt(error.range.start.line);
