@@ -1,8 +1,13 @@
 {
 	"name": "simple-prompt-tools",
 	"displayName": "simple-prompt-tools",
+	"author": "Nils F.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nf-projects/simple-prompt-tools"
+	},
 	"description": "A collection of VSCode tools to make AI development more efficient through prompt templates",
-	"version": "1.2.0",
+	"version": "2.0.0",
 	"engines": {
 		"vscode": "^1.91.0"
 	},
