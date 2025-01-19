@@ -29,6 +29,14 @@
 			{
 				"command": "simple-prompt-tools.copyCurrentFileToMarkdown",
 				"title": "Copy Current File to Markdown"
+			},
+			{
+				"command": "simple-prompt-tools.copyFolder",
+				"title": "Copy Folder"
+			},
+			{
+				"command": "simple-prompt-tools.copyErrorsInAllOpenFiles",
+				"title": "Copy Errors in All Open Files"
 			}
 		],
 		"viewsContainers": {

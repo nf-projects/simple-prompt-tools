@@ -58,6 +58,13 @@ export function getWebviewContent(webview: vscode.Webview): string {
             <label><input type="checkbox" id="appendcopyFolderStructure"> Append</label>
         </div>
         <div class="checkbox-container">
+            <button class="button" id="copyFolder">
+                <span>Copy Folder</span>
+                <span class="description">Copy all files from a selected folder</span>
+            </button>
+            <label><input type="checkbox" id="appendcopyFolder"> Append</label>
+        </div>
+        <div class="checkbox-container">
             <button class="button" id="copyCurrentFileToMarkdown">
                 <span>Copy Current File</span>
                 <span class="description">Copy the currently active file as markdown</span>
@@ -85,6 +92,13 @@ export function getWebviewContent(webview: vscode.Webview): string {
             </button>
             <label><input type="checkbox" id="appendcopyErrorsInCurrentFile"> Append</label>
         </div>
+        <div class="checkbox-container">
+            <button class="button" id="copyErrorsInAllOpenFiles">
+                <span>Copy All Errors</span>
+                <span class="description">Copy errors from all open editor tabs</span>
+            </button>
+            <label><input type="checkbox" id="appendcopyErrorsInAllOpenFiles"> Append</label>
+        </div>
 
         <script nonce="${webview.cspSource}">
             (function() {
@@ -94,10 +108,12 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 const buttonIds = [
                     'copySelectedProjectPrompt',
                     'copyFolderStructure',
+                    'copyFolder',
                     'openFilesToMarkdown',
                     'selectOpenFilesToMarkdown',
                     'copyCurrentFileToMarkdown',
-                    'copyErrorsInCurrentFile'
+                    'copyErrorsInCurrentFile',
+                    'copyErrorsInAllOpenFiles'
                 ];
 
                 buttonIds.forEach(id => {
