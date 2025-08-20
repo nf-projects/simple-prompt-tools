@@ -7,7 +7,7 @@
 		"url": "https://github.com/nf-projects/simple-prompt-tools"
 	},
 	"description": "A collection of VSCode tools to make AI development more efficient through prompt templates",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"engines": {
 		"vscode": "^1.91.0"
 	},
@@ -37,6 +37,10 @@
 			{
 				"command": "simple-prompt-tools.copyErrorsInAllOpenFiles",
 				"title": "Copy Errors in All Open Files"
+			},
+			{
+				"command": "simple-prompt-tools.copyAllOpenFilePaths",
+				"title": "Copy All Open File Paths"
 			}
 		],
 		"viewsContainers": {
@@ -78,6 +82,7 @@
 		"@typescript-eslint/parser": "^7.11.0",
 		"@vscode/test-cli": "^0.0.9",
 		"@vscode/test-electron": "^2.4.0",
+		"@vscode/vsce": "^3.6.0",
 		"eslint": "^8.57.0",
 		"ts-loader": "^9.5.1",
 		"typescript": "^5.4.5",

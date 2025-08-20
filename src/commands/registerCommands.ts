@@ -6,6 +6,7 @@ import { copyCurrentFileToMarkdown } from "../actions/copyCurrentFileToMarkdown"
 import { copyErrorsInCurrentFile } from "../actions/copyErrorsInCurrentFile";
 import { copyFolder } from "../actions/copyFolder";
 import { copyErrorsInAllOpenFiles } from "../actions/copyErrorsInAllOpenFiles";
+import { copyAllOpenFilePaths } from "../actions/copyAllOpenFilePaths";
 
 export function registerCommands(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
@@ -36,6 +37,10 @@ export function registerCommands(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			"simple-prompt-tools.copyErrorsInAllOpenFiles",
 			copyErrorsInAllOpenFiles
+		),
+		vscode.commands.registerCommand(
+			"simple-prompt-tools.copyAllOpenFilePaths",
+			copyAllOpenFilePaths
 		)
 	);
 }

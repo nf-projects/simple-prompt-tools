@@ -6,6 +6,7 @@ import { copyErrorsInCurrentFile } from "../actions/copyErrorsInCurrentFile";
 import { copyFolderStructure } from "../actions/copyFolderStructure";
 import { copyFolder } from "../actions/copyFolder";
 import { copyErrorsInAllOpenFiles } from "../actions/copyErrorsInAllOpenFiles";
+import { copyAllOpenFilePaths } from "../actions/copyAllOpenFilePaths";
 
 interface WebviewMessage {
 	type: string;
@@ -31,6 +32,9 @@ export async function handleWebviewMessage(data: WebviewMessage) {
 				break;
 			case "selectOpenFilesToMarkdown":
 				await selectOpenFilesToMarkdown(data.append);
+				break;
+			case "copyAllOpenFilePaths":
+				await copyAllOpenFilePaths(data.append);
 				break;
 			case "copyCurrentFileToMarkdown":
 				await copyCurrentFileToMarkdown(data.append);

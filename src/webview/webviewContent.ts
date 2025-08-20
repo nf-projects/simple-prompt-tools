@@ -86,6 +86,13 @@ export function getWebviewContent(webview: vscode.Webview): string {
             <label><input type="checkbox" id="appendselectOpenFilesToMarkdown"> Append</label>
         </div>
         <div class="checkbox-container">
+            <button class="button" id="copyAllOpenFilePaths">
+                <span>Copy All Open File Paths</span>
+                <span class="description">Copy paths of all open editor tabs as a Markdown list</span>
+            </button>
+            <label><input type="checkbox" id="appendcopyAllOpenFilePaths"> Append</label>
+        </div>
+        <div class="checkbox-container">
             <button class="button" id="copyErrorsInCurrentFile">
                 <span>Copy Errors in Current File</span>
                 <span class="description">Copy all errors in the currently active file as markdown</span>
@@ -111,6 +118,7 @@ export function getWebviewContent(webview: vscode.Webview): string {
                     'copyFolder',
                     'openFilesToMarkdown',
                     'selectOpenFilesToMarkdown',
+                    'copyAllOpenFilePaths',
                     'copyCurrentFileToMarkdown',
                     'copyErrorsInCurrentFile',
                     'copyErrorsInAllOpenFiles'
