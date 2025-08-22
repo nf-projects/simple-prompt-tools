@@ -106,6 +106,12 @@ export function getWebviewContent(webview: vscode.Webview): string {
             </button>
             <label><input type="checkbox" id="appendcopyErrorsInAllOpenFiles"> Append</label>
         </div>
+        <div class="checkbox-container">
+            <button class="button" id="splitClipboardByTokens">
+                <span>Split Clipboard by Token Count</span>
+                <span class="description">Split clipboard content into multiple attachments based on token limits</span>
+            </button>
+        </div>
 
         <script nonce="${webview.cspSource}">
             (function() {
@@ -121,7 +127,8 @@ export function getWebviewContent(webview: vscode.Webview): string {
                     'copyAllOpenFilePaths',
                     'copyCurrentFileToMarkdown',
                     'copyErrorsInCurrentFile',
-                    'copyErrorsInAllOpenFiles'
+                    'copyErrorsInAllOpenFiles',
+                    'splitClipboardByTokens'
                 ];
 
                 buttonIds.forEach(id => {

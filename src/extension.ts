@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { PromptToolsViewProvider } from "./webview/PromptToolsViewProvider";
 import { registerCommands } from "./commands/registerCommands";
+import { cleanup } from "./utils/tokenUtils";
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new PromptToolsViewProvider(context.extensionUri);
@@ -16,4 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
 	registerCommands(context);
 }
 
-export function deactivate() {}
+export function deactivate() {
+	// Clean up tiktoken encoder to free memory
+	cleanup();
+}

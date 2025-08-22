@@ -7,6 +7,7 @@ import { copyFolderStructure } from "../actions/copyFolderStructure";
 import { copyFolder } from "../actions/copyFolder";
 import { copyErrorsInAllOpenFiles } from "../actions/copyErrorsInAllOpenFiles";
 import { copyAllOpenFilePaths } from "../actions/copyAllOpenFilePaths";
+import { splitClipboardByTokens } from "../actions/splitClipboardByTokens";
 
 interface WebviewMessage {
 	type: string;
@@ -44,6 +45,9 @@ export async function handleWebviewMessage(data: WebviewMessage) {
 				break;
 			case "copyErrorsInAllOpenFiles":
 				await copyErrorsInAllOpenFiles(data.append);
+				break;
+			case "splitClipboardByTokens":
+				await splitClipboardByTokens();
 				break;
 			default:
 				console.warn("Unknown message type:", data.type);

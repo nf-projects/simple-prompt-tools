@@ -7,7 +7,7 @@
 		"url": "https://github.com/nf-projects/simple-prompt-tools"
 	},
 	"description": "A collection of VSCode tools to make AI development more efficient through prompt templates",
-	"version": "2.0.1",
+	"version": "2.1.1",
 	"engines": {
 		"vscode": "^1.91.0"
 	},
@@ -41,6 +41,10 @@
 			{
 				"command": "simple-prompt-tools.copyAllOpenFilePaths",
 				"title": "Copy All Open File Paths"
+			},
+			{
+				"command": "simple-prompt-tools.splitClipboardByTokens",
+				"title": "Split Clipboard by Token Count"
 			}
 		],
 		"viewsContainers": {
@@ -88,5 +92,8 @@
 		"typescript": "^5.4.5",
 		"webpack": "^5.92.1",
 		"webpack-cli": "^5.1.4"
+	},
+	"dependencies": {
+		"tiktoken": "^1.0.22"
 	}
 }

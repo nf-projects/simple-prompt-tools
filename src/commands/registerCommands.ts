@@ -7,6 +7,7 @@ import { copyErrorsInCurrentFile } from "../actions/copyErrorsInCurrentFile";
 import { copyFolder } from "../actions/copyFolder";
 import { copyErrorsInAllOpenFiles } from "../actions/copyErrorsInAllOpenFiles";
 import { copyAllOpenFilePaths } from "../actions/copyAllOpenFilePaths";
+import { splitClipboardByTokens } from "../actions/splitClipboardByTokens";
 
 export function registerCommands(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
@@ -41,6 +42,10 @@ export function registerCommands(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			"simple-prompt-tools.copyAllOpenFilePaths",
 			copyAllOpenFilePaths
+		),
+		vscode.commands.registerCommand(
+			"simple-prompt-tools.splitClipboardByTokens",
+			splitClipboardByTokens
 		)
 	);
 }
