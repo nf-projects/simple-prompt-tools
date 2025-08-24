@@ -6,13 +6,14 @@
 // The token counting is precise and matches what OpenAI models actually use.
 import * as vscode from "vscode";
 import {
-	estimateTokenCount,
 	getTokenCount,
 	parseClipboardFiles,
 	parseClipboardFilesAsync,
 	groupFilesByTokenLimit,
 	filesToMarkdown,
 	ParsedFile,
+	splitTextByTokenLimit,
+	splitMarkdownFileIntoTokenChunks,
 } from "../utils/tokenUtils";
 
 export async function splitClipboardByTokens() {
@@ -62,16 +63,43 @@ export async function splitClipboardByTokens() {
 
 		const maxTokensPerSplit = parseInt(maxTokensInput);
 
+		// WHY: Introduce a user preference for how the clipboard content should be split.
+		// This addresses the limitation where the system previously broke if file content
+		// was not present or sufficient, and now allows for a strict token-based split
+		// regardless of the content structure.
+		const strategy = await vscode.window.showQuickPick(
+			[
+				{
+					label: "Prefer file-based grouping",
+					description:
+						"Keep files together when possible; fallback to strict token chunks",
+				},
+				{
+					label: "Strict token chunks",
+					description: "Ignore file boundaries; split by tokens only",
+				},
+			],
+			{ placeHolder: "Choose splitting strategy" }
+		);
+
+		const preferFiles = strategy?.label === "Prefer file-based grouping";
+
 		// Try to parse as file-based content first (quick check)
 		const parsedFiles = parseClipboardFiles(clipboardContent);
 
-		if (parsedFiles.length > 0) {
+		// WHY: Based on the user's strategy preference, either try to group by file boundaries
+		// or strictly enforce token limits, even if it means splitting individual files or lines.
+		if (preferFiles && parsedFiles.length > 0) {
 			// Re-parse with accurate token counting
-			const accurateParsedFiles = await parseClipboardFilesAsync(clipboardContent);
-			// Handle file-based content with smart splitting
+			const accurateParsedFiles = await parseClipboardFilesAsync(
+				clipboardContent
+			);
+			// WHY: Handle file-based content with smart splitting, but now guarantee
+			// that no individual chunk (or file within a chunk) exceeds the token limit.
 			await handleFileBasedContent(accurateParsedFiles, maxTokensPerSplit);
 		} else {
-			// Handle plain text content
+			// WHY: For plain text or when strict token splitting is preferred, ensure
+			// content is broken down solely based on the token limit, ignoring file structure.
 			await handlePlainTextContent(clipboardContent, maxTokensPerSplit);
 		}
 	} catch (error) {
@@ -84,85 +112,76 @@ async function handleFileBasedContent(
 	files: ParsedFile[],
 	maxTokensPerSplit: number
 ) {
-	// Show file analysis
-	const totalFiles = files.length;
-	const totalTokens = files.reduce((sum, file) => sum + file.tokenCount, 0);
-	const oversizedFiles = files.filter(
-		(file) => file.tokenCount > maxTokensPerSplit
-	);
-
-	let message = `Found ${totalFiles} file(s) with ~${totalTokens} total tokens.`;
-	if (oversizedFiles.length > 0) {
-		message += `\n⚠️  ${oversizedFiles.length} file(s) exceed the token limit and will be in separate attachments.`;
+	// WHY: This first step ensures that even individual files that are larger than the maxTokensPerSplit
+	// are themselves broken down into smaller, token-compliant chunks. This guarantees that no single
+	// output chunk will ever exceed the user-defined token limit.
+	const normalizedFiles: ParsedFile[] = [];
+	for (const file of files) {
+		if (file.tokenCount > maxTokensPerSplit) {
+			const splitParts = await splitMarkdownFileIntoTokenChunks(
+				file.filename,
+				file.content,
+				maxTokensPerSplit
+			);
+			normalizedFiles.push(...splitParts);
+		} else {
+			normalizedFiles.push(file);
+		}
 	}
 
+	// Show analysis
+	const totalFiles = normalizedFiles.length;
+	const totalTokens = normalizedFiles.reduce((sum, f) => sum + f.tokenCount, 0);
+
 	const proceed = await vscode.window.showInformationMessage(
-		message + "\n\nProceed with splitting?",
+		`Prepared ${totalFiles} file block(s) with ~${totalTokens} total tokens. Proceed with grouping and output?`,
 		"Yes",
 		"No"
 	);
-
 	if (proceed !== "Yes") {
 		return;
 	}
 
-	// Group files by token limit
-	const fileGroups = groupFilesByTokenLimit(files, maxTokensPerSplit);
+	// WHY: After ensuring individual files are within limits, group them into larger attachments.
+	// The `groupFilesByTokenLimit` function intelligently combines files while respecting the
+	// overall `maxTokensPerSplit` for each group, trying to keep related file blocks together.
+	const fileGroups = groupFilesByTokenLimit(normalizedFiles, maxTokensPerSplit);
 
-	// Create new editors for each group
-	await vscode.window.withProgress(
-		{
-			location: vscode.ProgressLocation.Notification,
-			title: "Creating split attachments...",
-			cancellable: false,
-		},
-		async (progress) => {
-			for (let i = 0; i < fileGroups.length; i++) {
-				const group = fileGroups[i];
-				const groupTokens = group.reduce(
-					(sum, file) => sum + file.tokenCount,
-					0
-				);
-				const groupContent = filesToMarkdown(group);
-
-				// Create new untitled document
-				const document = await vscode.workspace.openTextDocument({
-					content: groupContent,
-					language: "markdown",
-				});
-
-				// Show the document in a new editor
-				await vscode.window.showTextDocument(document, {
-					viewColumn: vscode.ViewColumn.Beside,
-					preview: false,
-				});
-
-				// Update progress
-				progress.report({
-					message: `Created attachment ${i + 1}/${
-						fileGroups.length
-					} (~${groupTokens} tokens, ${group.length} files)`,
-					increment: (1 / fileGroups.length) * 100,
-				});
-
-				// Small delay to prevent overwhelming the UI
-				await new Promise((resolve) => setTimeout(resolve, 100));
-			}
-		}
+	// WHY: Prompt the user for the desired output method, enhancing user experience
+	// by providing options beyond just opening new editor tabs.
+	const output = await vscode.window.showQuickPick(
+		[
+			{ label: "Open in editors", description: "Create one editor per chunk" },
+			{
+				label: "Interactive clipboard copy",
+				description: "Copy chunk-by-chunk with Next button",
+			},
+		],
+		{ placeHolder: "Choose output method" }
 	);
+	const openEditors = output?.label === "Open in editors";
 
-	const summary = fileGroups
-		.map((group, index) => {
-			const tokens = group.reduce((sum, file) => sum + file.tokenCount, 0);
-			return `• Attachment ${index + 1}: ${
-				group.length
-			} files, ~${tokens} tokens`;
-		})
-		.join("\n");
+	const chunkStrings = fileGroups.map((group) => filesToMarkdown(group));
+	// WHY: Execute the chosen output method based on user preference.
+	// `createEditorsForChunks` handles opening new editor tabs.
+	// `interactiveClipboardCopy` provides a guided, chunk-by-chunk copy experience.
+	if (openEditors) {
+		await createEditorsForChunks(chunkStrings, "markdown");
+		const summary = fileGroups
+			.map((group, index) => {
+				const tokens = group.reduce((sum, file) => sum + file.tokenCount, 0);
+				return `• Attachment ${index + 1}: ${
+					group.length
+				} file block(s), ~${tokens} tokens`;
+			})
+			.join("\n");
 
-	vscode.window.showInformationMessage(
-		`Successfully split into ${fileGroups.length} attachments:\n\n${summary}`
-	);
+		vscode.window.showInformationMessage(
+			`Successfully split into ${fileGroups.length} attachments:\n\n${summary}`
+		);
+	} else {
+		await interactiveClipboardCopy(chunkStrings);
+	}
 }
 
 async function handlePlainTextContent(
@@ -171,15 +190,8 @@ async function handlePlainTextContent(
 ) {
 	const totalTokens = await getTokenCount(content);
 
-	if (totalTokens <= maxTokensPerSplit) {
-		vscode.window.showInformationMessage(
-			`Content (~${totalTokens} tokens) is already within the limit (${maxTokensPerSplit}). No splitting needed.`
-		);
-		return;
-	}
-
 	const proceed = await vscode.window.showInformationMessage(
-		`Plain text content (~${totalTokens} tokens) will be split into chunks. Proceed?`,
+		`Plain text content (~${totalTokens} tokens). Proceed to split into token-bounded chunks (≤ ${maxTokensPerSplit}) and choose output method?`,
 		"Yes",
 		"No"
 	);
@@ -188,14 +200,47 @@ async function handlePlainTextContent(
 		return;
 	}
 
-	// Split text into roughly equal chunks
-	const chunks = splitTextIntoChunks(content, maxTokensPerSplit);
+	// WHY: Strictly split the plain text content into chunks that adhere to the maximum token limit.
+	// This ensures that even large blocks of unstructured text are manageable for tools with token constraints.
+	const chunks = await splitTextByTokenLimit(content, maxTokensPerSplit);
 
-	// Create new editors for each chunk
+	// WHY: Prompt the user for their preferred output method, enhancing usability.
+	const output = await vscode.window.showQuickPick(
+		[
+			{ label: "Open in editors", description: "Create one editor per chunk" },
+			{
+				label: "Interactive clipboard copy",
+				description: "Copy chunk-by-chunk with Next button",
+			},
+		],
+		{ placeHolder: "Choose output method" }
+	);
+	const openEditors = output?.label === "Open in editors";
+
+	// WHY: Execute the selected output method.
+	if (openEditors) {
+		await createEditorsForChunks(chunks, "plaintext");
+		vscode.window.showInformationMessage(
+			`Successfully split text into ${chunks.length} chunks.`
+		);
+	} else {
+		await interactiveClipboardCopy(chunks);
+	}
+}
+
+// WHY: Helper function to standardize the process of opening new untitled editor tabs for content chunks.
+// This improves code reusability and maintains consistency in how split results are presented to the user.
+async function createEditorsForChunks(
+	chunks: string[],
+	language: "markdown" | "plaintext"
+) {
 	await vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: "Creating text chunks...",
+			title:
+				language === "markdown"
+					? "Creating split attachments..."
+					: "Creating text chunks...",
 			cancellable: false,
 		},
 		async (progress) => {
@@ -203,82 +248,52 @@ async function handlePlainTextContent(
 				const chunk = chunks[i];
 				const chunkTokens = await getTokenCount(chunk);
 
-				// Create new untitled document
 				const document = await vscode.workspace.openTextDocument({
 					content: chunk,
-					language: "plaintext",
+					language,
 				});
-
-				// Show the document in a new editor
 				await vscode.window.showTextDocument(document, {
 					viewColumn: vscode.ViewColumn.Beside,
 					preview: false,
 				});
-
-				// Update progress
 				progress.report({
 					message: `Created chunk ${i + 1}/${
 						chunks.length
 					} (~${chunkTokens} tokens)`,
 					increment: (1 / chunks.length) * 100,
 				});
-
-				// Small delay to prevent overwhelming the UI
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 		}
 	);
-
-	vscode.window.showInformationMessage(
-		`Successfully split text into ${chunks.length} chunks.`
-	);
 }
 
-function splitTextIntoChunks(
-	text: string,
-	maxTokensPerChunk: number
-): string[] {
-	const chunks: string[] = [];
-	const lines = text.split("\n");
-
-	let currentChunk = "";
-	let currentTokens = 0;
-
-	for (const line of lines) {
-		const lineTokens = estimateTokenCount(line + "\n");
-
-		// If this line alone exceeds the limit, add it as its own chunk
-		if (lineTokens > maxTokensPerChunk) {
-			// Save current chunk if it has content
-			if (currentChunk) {
-				chunks.push(currentChunk.trim());
-				currentChunk = "";
-				currentTokens = 0;
-			}
-
-			// Add the long line as its own chunk
-			chunks.push(line);
-			continue;
-		}
-
-		// If adding this line would exceed the limit, start a new chunk
-		if (currentTokens + lineTokens > maxTokensPerChunk) {
-			if (currentChunk) {
-				chunks.push(currentChunk.trim());
-				currentChunk = "";
-				currentTokens = 0;
-			}
-		}
-
-		// Add line to current chunk
-		currentChunk += line + "\n";
-		currentTokens += lineTokens;
+// WHY: Provides an alternative, user-friendly way to handle split content by copying chunks sequentially
+// to the clipboard with explicit user interaction. This is useful for users who prefer to paste content
+// directly into other applications without creating multiple temporary editor tabs.
+async function interactiveClipboardCopy(chunks: string[]) {
+	if (chunks.length === 0) {
+		vscode.window.showInformationMessage("No chunks to copy.");
+		return;
 	}
-
-	// Add the last chunk if it has content
-	if (currentChunk.trim()) {
-		chunks.push(currentChunk.trim());
+	let index = 0;
+	await vscode.env.clipboard.writeText(chunks[index]);
+	let action: string | undefined = await vscode.window.showInformationMessage(
+		`First chunk copied (1/${chunks.length}). Copy next?`,
+		"Copy next",
+		"Cancel"
+	);
+	while (action === "Copy next") {
+		index++;
+		if (index >= chunks.length) {
+			vscode.window.showInformationMessage("All chunks copied.");
+			return;
+		}
+		await vscode.env.clipboard.writeText(chunks[index]);
+		action = await vscode.window.showInformationMessage(
+			`Chunk ${index + 1}/${chunks.length} copied. Copy next?`,
+			"Copy next",
+			"Cancel"
+		);
 	}
-
-	return chunks;
 }

@@ -20,28 +20,28 @@ async function loadTiktoken() {
 	if (isLoading) {
 		// Wait for ongoing load to complete
 		while (isLoading) {
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 		}
 		return encoder;
 	}
 
 	try {
 		isLoading = true;
-		
+
 		// Dynamically import the lite version to avoid blocking startup
 		const tiktokenModule = await import("tiktoken/lite");
 		Tiktoken = tiktokenModule.Tiktoken;
-		
+
 		// Load the cl100k_base encoding (used by GPT-4, GPT-3.5-turbo, etc.)
 		cl100k_base = require("tiktoken/encoders/cl100k_base.json");
-		
+
 		// Create the encoder
 		encoder = new Tiktoken(
 			cl100k_base.bpe_ranks,
 			cl100k_base.special_tokens,
 			cl100k_base.pat_str
 		);
-		
+
 		console.log("Tiktoken loaded successfully");
 		return encoder;
 	} catch (error) {
@@ -78,7 +78,9 @@ export async function getTokenCount(text: string): Promise<number> {
 		const enc = await loadTiktoken();
 		if (enc) {
 			const tokens = enc.encode(text);
-			return tokens.length;
+			// WHY: Adjust for the overestimation of tokens by the downloaded tokenizer
+			// (which estimates ~1.75 tokens per true GPT-4 token).
+			return Math.ceil(tokens.length / 1.75);
 		}
 	} catch (error) {
 		console.warn("Error using tiktoken:", error);
@@ -105,7 +107,7 @@ export function estimateTokenCount(text: string): number {
 	}
 
 	// For synchronous calls, always use approximation to avoid blocking
-	return getApproximateTokenCount(text);
+	return Math.ceil(getApproximateTokenCount(text) / 1.75);
 }
 
 /**
@@ -187,7 +189,9 @@ export function parseClipboardFiles(clipboardContent: string): ParsedFile[] {
 /**
  * Async version with more accurate token counting
  */
-export async function parseClipboardFilesAsync(clipboardContent: string): Promise<ParsedFile[]> {
+export async function parseClipboardFilesAsync(
+	clipboardContent: string
+): Promise<ParsedFile[]> {
 	const files: ParsedFile[] = [];
 
 	// Regular expression to match ```filename\ncontent\n``` blocks
@@ -267,4 +271,91 @@ export function groupFilesByTokenLimit(
  */
 export function filesToMarkdown(files: ParsedFile[]): string {
 	return files.map((file) => file.rawMarkdown).join("");
+}
+
+// WHY: This function implements a binary search-like approach to find the largest prefix of a given text
+// that fits within a specified token limit. It is crucial for ensuring that no generated chunk
+// (whether it's a file part or plain text) ever exceeds the maximum token count, thus guaranteeing
+// compliance with API limits.
+async function findLongestPrefixWithinTokenLimit(
+	text: string,
+	maxTokens: number,
+	tokenCounter: (s: string) => Promise<number>
+): Promise<number> {
+	let low = 0;
+	let high = text.length;
+	let best = 0;
+
+	while (low <= high) {
+		const mid = Math.floor((low + high) / 2);
+		const candidate = text.slice(0, mid);
+		const tokens = await tokenCounter(candidate);
+		if (tokens <= maxTokens) {
+			best = mid;
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
+	}
+
+	// Ensure we make forward progress even in worst cases
+	return Math.max(1, best);
+}
+
+// WHY: This generic splitting function uses `findLongestPrefixWithinTokenLimit` to iteratively
+// break down any given text into an array of chunks, each guaranteed to be within the `maxTokensPerChunk`.
+// It forms the core logic for all token-based splitting, whether for files or plain text.
+export async function splitByTokenLimit(
+	text: string,
+	maxTokensPerChunk: number,
+	tokenCounter: (s: string) => Promise<number>
+): Promise<string[]> {
+	const chunks: string[] = [];
+	let remaining = text;
+
+	while (remaining.length > 0) {
+		const take = await findLongestPrefixWithinTokenLimit(
+			remaining,
+			maxTokensPerChunk,
+			tokenCounter
+		);
+		const part = remaining.slice(0, take);
+		chunks.push(part);
+		remaining = remaining.slice(take);
+	}
+
+	return chunks;
+}
+
+// WHY: A specialized version of `splitByTokenLimit` for plain text, directly using `getTokenCount`.
+// This simplifies the interface for splitting unstructured text.
+export async function splitTextByTokenLimit(
+	text: string,
+	maxTokensPerChunk: number
+): Promise<string[]> {
+	return splitByTokenLimit(text, maxTokensPerChunk, getTokenCount);
+}
+
+// WHY: This function handles splitting individual markdown-formatted file blocks (like ` ```filename\ncontent\n``` `)
+// into multiple smaller blocks if their token count exceeds `maxTokensPerChunk`. It maintains the markdown
+// fencing for each sub-chunk, ensuring that the output remains valid and parsable as distinct file blocks.
+// This is critical for files that are themselves too large to fit into a single token-limited attachment.
+export async function splitMarkdownFileIntoTokenChunks(
+	filename: string,
+	content: string,
+	maxTokensPerChunk: number
+): Promise<ParsedFile[]> {
+	const parts = await splitByTokenLimit(
+		content,
+		maxTokensPerChunk,
+		async (s: string) => await getMarkdownFileTokenCount(filename, s)
+	);
+
+	const result: ParsedFile[] = [];
+	for (const part of parts) {
+		const rawMarkdown = `\`\`\`${filename}\n${part}\n\`\`\`\n\n`;
+		const tokenCount = await getTokenCount(rawMarkdown);
+		result.push({ filename, content: part, tokenCount, rawMarkdown });
+	}
+	return result;
 }
