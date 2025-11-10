@@ -8,6 +8,11 @@ import { copyFolder } from "../actions/copyFolder";
 import { copyErrorsInAllOpenFiles } from "../actions/copyErrorsInAllOpenFiles";
 import { copyAllOpenFilePaths } from "../actions/copyAllOpenFilePaths";
 import { splitClipboardByTokens } from "../actions/splitClipboardByTokens";
+import {
+	saveEditorTemplate,
+	loadEditorTemplate,
+	deleteEditorTemplate,
+} from "../actions/manageEditorTemplates";
 
 export function registerCommands(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
@@ -46,6 +51,18 @@ export function registerCommands(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			"simple-prompt-tools.splitClipboardByTokens",
 			splitClipboardByTokens
+		),
+		vscode.commands.registerCommand(
+			"simple-prompt-tools.saveEditorTemplate",
+			saveEditorTemplate
+		),
+		vscode.commands.registerCommand(
+			"simple-prompt-tools.loadEditorTemplate",
+			loadEditorTemplate
+		),
+		vscode.commands.registerCommand(
+			"simple-prompt-tools.deleteEditorTemplate",
+			deleteEditorTemplate
 		)
 	);
 }

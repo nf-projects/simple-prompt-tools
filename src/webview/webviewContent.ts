@@ -112,6 +112,24 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 <span class="description">Split clipboard content into multiple attachments based on token limits</span>
             </button>
         </div>
+        <div class="checkbox-container">
+            <button class="button" id="saveEditorTemplate">
+                <span>Save Editor Template</span>
+                <span class="description">Save current open files as a reusable template</span>
+            </button>
+        </div>
+        <div class="checkbox-container">
+            <button class="button" id="loadEditorTemplate">
+                <span>Load Editor Template</span>
+                <span class="description">Open a previously saved set of files</span>
+            </button>
+        </div>
+        <div class="checkbox-container">
+            <button class="button" id="deleteEditorTemplate">
+                <span>Delete Editor Template</span>
+                <span class="description">Remove a saved template</span>
+            </button>
+        </div>
 
         <script nonce="${webview.cspSource}">
             (function() {
@@ -128,7 +146,10 @@ export function getWebviewContent(webview: vscode.Webview): string {
                     'copyCurrentFileToMarkdown',
                     'copyErrorsInCurrentFile',
                     'copyErrorsInAllOpenFiles',
-                    'splitClipboardByTokens'
+                    'splitClipboardByTokens',
+                    'saveEditorTemplate',
+                    'loadEditorTemplate',
+                    'deleteEditorTemplate'
                 ];
 
                 buttonIds.forEach(id => {

@@ -8,6 +8,11 @@ import { copyFolder } from "../actions/copyFolder";
 import { copyErrorsInAllOpenFiles } from "../actions/copyErrorsInAllOpenFiles";
 import { copyAllOpenFilePaths } from "../actions/copyAllOpenFilePaths";
 import { splitClipboardByTokens } from "../actions/splitClipboardByTokens";
+import {
+	saveEditorTemplate,
+	loadEditorTemplate,
+	deleteEditorTemplate,
+} from "../actions/manageEditorTemplates";
 
 interface WebviewMessage {
 	type: string;
@@ -48,6 +53,15 @@ export async function handleWebviewMessage(data: WebviewMessage) {
 				break;
 			case "splitClipboardByTokens":
 				await splitClipboardByTokens();
+				break;
+			case "saveEditorTemplate":
+				await saveEditorTemplate();
+				break;
+			case "loadEditorTemplate":
+				await loadEditorTemplate();
+				break;
+			case "deleteEditorTemplate":
+				await deleteEditorTemplate();
 				break;
 			default:
 				console.warn("Unknown message type:", data.type);
